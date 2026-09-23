@@ -36,7 +36,7 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 /**
  * Credentials form for the sign-in screen. Validation and submission state are
- * handled by react-hook-form; the request goes to the mock `/api/auth/signin`
+ * handled by react-hook-form; the request goes to the mock `/api/account/signin`
  * endpoint and failures surface as toasts.
  */
 export const SignInForm = () => {

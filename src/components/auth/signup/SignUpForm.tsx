@@ -43,7 +43,7 @@ interface SignUpFormProps {
   onSuccess: (email: string, password: string) => void;
 }
 
-/** Account creation form. Posts to the mock `/api/auth/signup` endpoint. */
+/** Account creation form. Posts to the mock `/api/account/signup` endpoint. */
 export const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
   const {
     register,

@@ -64,8 +64,8 @@ Any six-digit code is accepted at the OTP steps — nothing is actually emailed.
 ## How it fits together
 
 ```
-component → lib/authApi.ts → fetch → /api/auth/* → lib/usersDb.ts → src/data/users.json
-                                                 → lib/session.ts → session cookie
+component → lib/authApi.ts → fetch → /api/account/* → lib/usersDb.ts → src/data/users.json
+                                                    → lib/session.ts → session cookie
 ```
 
 Components never touch the database. They call the typed helpers in
@@ -78,14 +78,19 @@ rather than a runtime surprise.
 
 | Route | Purpose |
 | --- | --- |
-| `POST /api/auth/signin` | Verifies credentials, opens a session |
-| `POST /api/auth/signup` | Checks the address is free |
-| `POST /api/auth/verify-otp` | Accepts the code and writes the new account |
-| `POST /api/auth/signout` | Clears the session |
-| `POST /api/auth/forgot-password` | Starts a reset |
-| `POST /api/auth/forgot-password/verify` | Checks the reset code |
-| `POST /api/auth/password-create` | Replaces the password |
+| `POST /api/account/signin` | Verifies credentials, opens a session |
+| `POST /api/account/signup` | Checks the address is free |
+| `POST /api/account/verify-otp` | Accepts the code and writes the new account |
+| `POST /api/account/signout` | Clears the session |
+| `POST /api/account/forgot-password` | Starts a reset |
+| `POST /api/account/forgot-password/verify` | Checks the reset code |
+| `POST /api/account/password-create` | Replaces the password |
 | `/api/auth/[...nextauth]` | Auth.js — Google OAuth, session, callbacks |
+
+The application's own endpoints live under `/api/account` rather than
+`/api/auth`, which belongs entirely to Auth.js. A route file at
+`/api/auth/signout` would take precedence over the Auth.js catch-all and
+silently break Google sign-out.
 
 Each returns a JSON `message` and a meaningful status: `400` for a malformed or
 incomplete body, `401` for bad credentials, `404` for an unknown account, `409`
@@ -110,7 +115,8 @@ toasts.
 ```
 src/
 ├── app/
-│   ├── api/auth/          route handlers (the only database access)
+│   ├── api/account/       route handlers (the only database access)
+│   ├── api/auth/          Auth.js catch-all
 │   ├── auth/              signin · signup · forgotpassword, with a shared layout
 │   ├── layout.tsx         fonts, toaster
 │   └── page.tsx           signed-in landing page

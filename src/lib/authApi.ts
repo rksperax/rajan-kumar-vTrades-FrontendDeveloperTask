@@ -32,21 +32,21 @@ async function post<T>(url: string, body: unknown): Promise<ApiResult<T>> {
 }
 
 export const signInRequest = (email: string, password: string, rememberMe = false) =>
-  post('/api/auth/signin', { email, password, rememberMe });
+  post('/api/account/signin', { email, password, rememberMe });
 
 export const signUpRequest = (email: string, password: string) =>
-  post('/api/auth/signup', { email, password });
+  post('/api/account/signup', { email, password });
 
 export const verifyOtpRequest = (email: string, password: string, otp: string) =>
-  post('/api/auth/verify-otp', { email, password, otp });
+  post('/api/account/verify-otp', { email, password, otp });
 
-export const signOutRequest = () => post('/api/auth/signout', {});
+export const signOutRequest = () => post('/api/account/signout', {});
 
 export const forgotPasswordRequest = (email: string) =>
-  post('/api/auth/forgot-password', { email });
+  post('/api/account/forgot-password', { email });
 
 export const verifyResetOtpRequest = (email: string, otp: string) =>
-  post('/api/auth/forgot-password/verify', { email, otp });
+  post('/api/account/forgot-password/verify', { email, otp });
 
 export const createPasswordRequest = (email: string, newPassword: string) =>
-  post('/api/auth/password-create', { email, newPassword });
+  post('/api/account/password-create', { email, newPassword });
