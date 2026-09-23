@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/Input';
@@ -73,7 +74,20 @@ export const SignInForm = () => {
     }
   };
 
-  // Placeholder until an OAuth provider is wired up for these buttons.
+  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      // Redirects to Google; on return, Auth.js lands the user on `/`.
+      await signIn('google', { redirectTo: '/' });
+    } catch {
+      toast.error('Could not reach Google. Please try again.');
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // Microsoft is not configured as a provider yet.
   const handleSsoUnavailable = (provider: string) => {
     toast.info(`${provider} sign-in is not connected yet`);
   };
@@ -119,7 +133,8 @@ export const SignInForm = () => {
         <Button
           variant="secondary"
           className="w-full"
-          onClick={() => handleSsoUnavailable('Google')}
+          onClick={handleGoogleSignIn}
+          loading={isGoogleLoading}
           icon={<Image src={google_logo} alt="" width={20} height={20} />}
         >
           Sign In with Google
