@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { SeparatorWithText } from '@/components/ui/SeparatorWithText';
 import { google_logo, microsoft_logo } from '@/assets';
 import { signInRequest } from '@/lib/authApi';
+import { DEMO_CREDENTIALS } from '@/lib/demoCredentials';
 
 /**
  * Validation rules for the sign-in form. `min(1)` runs before the email format
@@ -48,7 +49,12 @@ export const SignInForm = () => {
     formState: { errors, isSubmitting },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
-    defaultValues: { email: '', password: '', rememberMe: false },
+    // Pre-filled with the seeded account so the demo signs in with one click.
+    defaultValues: {
+      email: DEMO_CREDENTIALS.email,
+      password: DEMO_CREDENTIALS.password,
+      rememberMe: false,
+    },
   });
 
   // Keeps the submit button disabled until both fields have something in them.
