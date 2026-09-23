@@ -31,8 +31,8 @@ async function post<T>(url: string, body: unknown): Promise<ApiResult<T>> {
   }
 }
 
-export const signInRequest = (email: string, password: string) =>
-  post('/api/auth/signin', { email, password });
+export const signInRequest = (email: string, password: string, rememberMe = false) =>
+  post('/api/auth/signin', { email, password, rememberMe });
 
 export const signUpRequest = (email: string, password: string) =>
   post('/api/auth/signup', { email, password });

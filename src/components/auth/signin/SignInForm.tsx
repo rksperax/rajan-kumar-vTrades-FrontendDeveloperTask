@@ -61,7 +61,7 @@ export const SignInForm = () => {
   const [email, password] = useWatch({ control, name: ['email', 'password'] });
 
   const onSubmit = async (values: SignInFormValues) => {
-    const result = await signInRequest(values.email, values.password);
+    const result = await signInRequest(values.email, values.password, values.rememberMe);
 
     if (!result.ok) {
       toast.error(result.message);

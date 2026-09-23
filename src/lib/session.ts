@@ -10,10 +10,17 @@ import { SESSION_COOKIE } from '@/lib/sessionCookie';
  * token or an opaque id pointing at server-side session state.
  */
 
-const MAX_AGE_SECONDS = 60 * 60 * 24; // one day
+/** How long a remembered session survives. */
+const REMEMBERED_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // thirty days
 
-/** Starts a session for this browser. */
-export async function startSession(user: PublicUser) {
+/**
+ * Starts a session for this browser.
+ *
+ * @param remember When true the cookie is given an expiry and survives a
+ * browser restart. When false it is written without one, making it a session
+ * cookie that the browser drops when it closes.
+ */
+export async function startSession(user: PublicUser, remember = false) {
   const store = await cookies();
 
   store.set(SESSION_COOKIE, JSON.stringify(user), {
@@ -21,7 +28,7 @@ export async function startSession(user: PublicUser) {
     sameSite: 'lax',
     path: '/',
     secure: process.env.NODE_ENV === 'production',
-    maxAge: MAX_AGE_SECONDS,
+    ...(remember ? { maxAge: REMEMBERED_MAX_AGE_SECONDS } : {}),
   });
 }
 
