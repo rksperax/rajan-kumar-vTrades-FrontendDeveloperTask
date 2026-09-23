@@ -11,24 +11,27 @@ import { OtpVerificationForm } from '@/components/auth/signup/OtpVerificationFor
  * code. Kept as a client component so the page itself can export metadata.
  */
 export const SignUpFlow = () => {
-  const [email, setEmail] = useState('');
-  const isVerifying = email !== '';
+  const [pending, setPending] = useState<{ email: string; password: string } | null>(null);
 
   return (
     <>
       <Header
-        title={isVerifying ? 'Verify OTP' : 'Sign Up'}
+        title={pending ? 'Verify OTP' : 'Sign Up'}
         subtitle={
-          isVerifying
-            ? `Enter the 6-digit code sent to ${email}`
+          pending
+            ? `Enter the 6-digit code sent to ${pending.email}`
             : 'Manage your workspace seamlessly. Sign up to continue.'
         }
       />
 
-      {isVerifying ? (
-        <OtpVerificationForm email={email} onBack={() => setEmail('')} />
+      {pending ? (
+        <OtpVerificationForm
+          email={pending.email}
+          password={pending.password}
+          onBack={() => setPending(null)}
+        />
       ) : (
-        <SignUpForm onSuccess={setEmail} />
+        <SignUpForm onSuccess={(email, password) => setPending({ email, password })} />
       )}
     </>
   );

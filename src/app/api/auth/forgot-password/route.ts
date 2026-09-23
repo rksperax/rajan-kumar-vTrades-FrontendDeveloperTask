@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 
-/** Shape of the JSON body this route expects. */
+import { findUser } from '@/lib/usersDb';
+
 interface ForgotPasswordBody {
   email?: string;
 }
 
 /**
- * Mock "send reset link" endpoint. Always reports success for a supplied
- * address, mirroring the common practice of not revealing whether an account
- * exists.
+ * Starts a password reset. The demo says plainly when there is no account, so
+ * a tester is not left guessing why their new password never works; a real app
+ * would stay vague to avoid revealing which addresses are registered.
  */
 export async function POST(request: Request) {
   let body: ForgotPasswordBody;
@@ -23,8 +24,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Email is required' }, { status: 400 });
   }
 
-  // Stand in for the latency of a real auth call so loading states are visible.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  if (!(await findUser(body.email))) {
+    return NextResponse.json({ message: 'No account found with this email' }, { status: 404 });
+  }
 
   return NextResponse.json({ message: 'Reset instructions sent to your email' }, { status: 200 });
 }

@@ -1,19 +1,37 @@
 'use client';
 
 import React, { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { signOut as googleSignOut } from 'next-auth/react';
+
 import { Button } from '@/components/ui/Button';
+import { signOutRequest } from '@/lib/authApi';
 
 interface SignOutButtonProps {
-  /** Server action that clears the session and redirects. */
-  signOutAction: () => Promise<void>;
+  /** True when the session came from Google rather than the JSON database. */
+  isGoogleSession: boolean;
 }
 
-/** Signs the user out through a server action, showing progress meanwhile. */
-export const SignOutButton: React.FC<SignOutButtonProps> = ({ signOutAction }) => {
+/** Ends whichever kind of session is active and returns to sign-in. */
+export const SignOutButton: React.FC<SignOutButtonProps> = ({ isGoogleSession }) => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const handleSignOut = () => {
+    startTransition(async () => {
+      if (isGoogleSession) {
+        await googleSignOut({ redirectTo: '/auth/signin' });
+        return;
+      }
+
+      await signOutRequest();
+      router.replace('/auth/signin');
+      router.refresh();
+    });
+  };
+
   return (
-    <Button onClick={() => startTransition(() => signOutAction())} loading={isPending}>
+    <Button className="mt-2" onClick={handleSignOut} loading={isPending}>
       Sign Out
     </Button>
   );

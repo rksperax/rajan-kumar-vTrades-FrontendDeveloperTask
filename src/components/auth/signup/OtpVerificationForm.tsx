@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { OtpInput } from '@/components/ui/OtpInput';
 import { Button } from '@/components/ui/Button';
+import { verifyOtpRequest } from '@/lib/authApi';
 
 const otpSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
@@ -17,14 +18,23 @@ const otpSchema = z.object({
 type OtpFormValues = z.infer<typeof otpSchema>;
 
 interface OtpVerificationFormProps {
-  /** Address the code was sent to; submitted alongside the code. */
+  /** Address the code was sent to. */
   email: string;
+  /** Password chosen on the previous step; stored once the code is accepted. */
+  password: string;
   /** Returns to the credentials step. */
   onBack: () => void;
 }
 
-/** Second sign-up step: verifies the emailed code via `/api/auth/verify-otp`. */
-export const OtpVerificationForm: React.FC<OtpVerificationFormProps> = ({ email, onBack }) => {
+/**
+ * Second sign-up step. Any six-digit code is accepted — there is no real email
+ * — and the account is created once it is entered.
+ */
+export const OtpVerificationForm: React.FC<OtpVerificationFormProps> = ({
+  email,
+  password,
+  onBack,
+}) => {
   const router = useRouter();
 
   const {
@@ -40,25 +50,15 @@ export const OtpVerificationForm: React.FC<OtpVerificationFormProps> = ({ email,
   const otp = useWatch({ control, name: 'otp' });
 
   const onSubmit = async (values: OtpFormValues) => {
-    try {
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: values.otp }),
-      });
-      const data = await response.json();
+    const result = await verifyOtpRequest(email, password, values.otp);
 
-      if (!response.ok) {
-        toast.error(data.message ?? 'Failed to verify the code');
-        return;
-      }
-
-      toast.success(data.message);
-      router.push('/auth/signin');
-    } catch {
-      // Network-level failure: the request never reached the route handler.
-      toast.error('Something went wrong. Please try again.');
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
     }
+
+    toast.success(result.message);
+    router.push('/auth/signin');
   };
 
   return (

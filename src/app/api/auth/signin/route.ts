@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 
-/** Shape of the JSON body this route expects. */
+import { findUser, hashPassword, toPublicUser } from '@/lib/usersDb';
+import { startSession } from '@/lib/session';
+
 interface SignInBody {
   email?: string;
   password?: string;
 }
 
-/**
- * Mock sign-in endpoint. Any password is accepted for an `@workhive.com`
- * address; every other address is rejected as an invalid credential.
- */
+/** Verifies credentials against the JSON database and opens a session. */
 export async function POST(request: Request) {
   let body: SignInBody;
 
@@ -25,15 +24,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
   }
 
-  // Stand in for the latency of a real auth call so loading states are visible.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const user = await findUser(email);
 
-  if (!email.endsWith('@workhive.com')) {
+  // One message for both cases, so the response does not reveal which
+  // addresses have accounts.
+  if (!user || user.passwordHash !== hashPassword(password)) {
     return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
   }
 
+  await startSession(toPublicUser(user));
+
   return NextResponse.json(
-    { message: 'Signed in successfully', user: { email, name: 'Demo User' } },
+    { message: 'Signed in successfully', user: toPublicUser(user) },
     { status: 200 }
   );
 }

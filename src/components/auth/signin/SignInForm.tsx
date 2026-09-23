@@ -7,6 +7,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/Input';
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { SeparatorWithText } from '@/components/ui/SeparatorWithText';
 import { google_logo, microsoft_logo } from '@/assets';
+import { signInRequest } from '@/lib/authApi';
 
 /**
  * Validation rules for the sign-in form. `min(1)` runs before the email format
@@ -37,11 +39,12 @@ type SignInFormValues = z.infer<typeof signInSchema>;
  * endpoint and failures surface as toasts.
  */
 export const SignInForm = () => {
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     control,
-    resetField,
     formState: { errors, isSubmitting },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -52,26 +55,17 @@ export const SignInForm = () => {
   const [email, password] = useWatch({ control, name: ['email', 'password'] });
 
   const onSubmit = async (values: SignInFormValues) => {
-    try {
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: values.email, password: values.password }),
-      });
-      const data = await response.json();
+    const result = await signInRequest(values.email, values.password);
 
-      if (!response.ok) {
-        toast.error(data.message ?? 'Failed to sign in');
-        return;
-      }
-
-      // No authenticated area exists yet, so success only confirms the call.
-      toast.success(data.message);
-      resetField('password');
-    } catch {
-      // Network-level failure: the request never reached the route handler.
-      toast.error('Something went wrong. Please try again.');
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
     }
+
+    toast.success(result.message);
+    // The route set the session cookie, so refresh the server-rendered page.
+    router.replace('/');
+    router.refresh();
   };
 
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);

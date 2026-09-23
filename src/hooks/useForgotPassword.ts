@@ -4,6 +4,12 @@ import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import {
+  createPasswordRequest,
+  forgotPasswordRequest,
+  verifyResetOtpRequest,
+} from '@/lib/authApi';
+
 /** Stages of the password reset journey, in the order they occur. */
 export type ForgotPasswordStep =
   | 'EMAIL'
@@ -13,33 +19,7 @@ export type ForgotPasswordStep =
   | 'PASSWORD_CREATED';
 
 /**
- * POSTs a JSON body and returns the parsed response, surfacing any failure as
- * a toast. Resolves to `null` when the caller should stay on the current step.
- */
-async function postJson(url: string, body: unknown, fallbackMessage: string) {
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      toast.error(data.message ?? fallbackMessage);
-      return null;
-    }
-
-    return data as { message: string };
-  } catch {
-    // Network-level failure: the request never reached the route handler.
-    toast.error('Something went wrong. Please try again.');
-    return null;
-  }
-}
-
-/**
- * Drives the multi-step password reset. Each action awaits its request and
+ * Drives the multi-step password reset through the auth API. Each action
  * advances the step only on success, so callers can bind their own submitting
  * state to the returned promise.
  */
@@ -49,12 +29,12 @@ export const useForgotPassword = () => {
   const [email, setEmail] = useState('');
 
   const requestReset = useCallback(async (address: string) => {
-    const data = await postJson(
-      '/api/auth/forgot-password',
-      { email: address },
-      'Failed to send reset instructions'
-    );
-    if (!data) return;
+    const result = await forgotPasswordRequest(address);
+
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
 
     setEmail(address);
     setStep('LINK_SENT');
@@ -62,12 +42,12 @@ export const useForgotPassword = () => {
 
   const verifyOtp = useCallback(
     async (otp: string) => {
-      const data = await postJson(
-        '/api/auth/forgot-password/verify',
-        { email, otp },
-        'Failed to verify the code'
-      );
-      if (!data) return;
+      const result = await verifyResetOtpRequest(email, otp);
+
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
 
       setStep('NEW_PASSWORD');
     },
@@ -76,12 +56,12 @@ export const useForgotPassword = () => {
 
   const updatePassword = useCallback(
     async (newPassword: string) => {
-      const data = await postJson(
-        '/api/auth/password-create',
-        { email, newPassword },
-        'Failed to update your password'
-      );
-      if (!data) return;
+      const result = await createPasswordRequest(email, newPassword);
+
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
 
       setStep('PASSWORD_CREATED');
     },
@@ -89,12 +69,9 @@ export const useForgotPassword = () => {
   );
 
   const resendOtp = useCallback(async () => {
-    const data = await postJson(
-      '/api/auth/forgot-password',
-      { email },
-      'Failed to resend the code'
-    );
-    if (data) toast.success('A new code is on its way');
+    const result = await forgotPasswordRequest(email);
+    if (result.ok) toast.success('A new code is on its way');
+    else toast.error(result.message);
   }, [email]);
 
   /** Dismisses the "link sent" dialog and moves on to code entry. */

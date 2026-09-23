@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 
-/** Shape of the JSON body this route expects. */
+import { hashPassword, normaliseEmail, readUsers, writeUsers } from '@/lib/usersDb';
+
 interface PasswordCreateBody {
   email?: string;
   newPassword?: string;
 }
 
-/** Mock endpoint that stores the new password chosen during a reset. */
+/** Replaces the password on an existing account in the JSON database. */
 export async function POST(request: Request) {
   let body: PasswordCreateBody;
 
@@ -29,8 +30,16 @@ export async function POST(request: Request) {
     );
   }
 
-  // Stand in for the latency of a real auth call so loading states are visible.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const address = normaliseEmail(email);
+  const users = await readUsers();
+  const index = users.findIndex((user) => user.email === address);
+
+  if (index === -1) {
+    return NextResponse.json({ message: 'No account found with this email' }, { status: 404 });
+  }
+
+  const updated = { ...users[index], passwordHash: hashPassword(newPassword) };
+  await writeUsers(users.map((user, i) => (i === index ? updated : user)));
 
   return NextResponse.json({ message: 'Password updated successfully' }, { status: 200 });
 }

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { SeparatorWithText } from '@/components/ui/SeparatorWithText';
 import { google_logo, microsoft_logo } from '@/assets';
+import { signUpRequest } from '@/lib/authApi';
 
 /**
  * Validation rules for the sign-up form. The confirmation check reports against
@@ -35,8 +36,11 @@ const signUpSchema = z
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 interface SignUpFormProps {
-  /** Called with the address once the account is created, to start OTP verification. */
-  onSuccess: (email: string) => void;
+  /**
+   * Called once the address is free. The account itself is created after the
+   * code is verified, so an abandoned sign-up leaves nothing behind.
+   */
+  onSuccess: (email: string, password: string) => void;
 }
 
 /** Account creation form. Posts to the mock `/api/auth/signup` endpoint. */
@@ -45,6 +49,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
     register,
     handleSubmit,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -58,25 +63,17 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
   });
 
   const onSubmit = async (values: SignUpFormValues) => {
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: values.email, password: values.password }),
-      });
-      const data = await response.json();
+    const result = await signUpRequest(values.email, values.password);
 
-      if (!response.ok) {
-        toast.error(data.message ?? 'Failed to sign up');
-        return;
-      }
-
-      toast.success(data.message);
-      onSuccess(values.email);
-    } catch {
-      // Network-level failure: the request never reached the route handler.
-      toast.error('Something went wrong. Please try again.');
+    if (!result.ok) {
+      // A taken address belongs under the email field; anything else is a toast.
+      if (result.status === 409) setError('email', { message: result.message });
+      else toast.error(result.message);
+      return;
     }
+
+    toast.success(result.message);
+    onSuccess(values.email, values.password);
   };
 
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);

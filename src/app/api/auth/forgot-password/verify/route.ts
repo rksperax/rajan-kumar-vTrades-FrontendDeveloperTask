@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 
-/** Shape of the JSON body this route expects. */
+import { findUser } from '@/lib/usersDb';
+
 interface VerifyResetOtpBody {
   email?: string;
   otp?: string;
 }
 
-/**
- * Mock OTP check for the password reset flow. With no real code to compare
- * against, any code is accepted; only a missing email or code is rejected.
- */
+/** Checks the reset code. Any code is accepted; nothing is actually emailed. */
 export async function POST(request: Request) {
   let body: VerifyResetOtpBody;
 
@@ -25,8 +23,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Email and OTP are required' }, { status: 400 });
   }
 
-  // Stand in for the latency of a real auth call so loading states are visible.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  if (!(await findUser(email))) {
+    return NextResponse.json({ message: 'No account found with this email' }, { status: 404 });
+  }
 
   return NextResponse.json({ message: 'OTP verified successfully' }, { status: 200 });
 }

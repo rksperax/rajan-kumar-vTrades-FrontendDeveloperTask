@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 
-/** Shape of the JSON body this route expects. */
+import { findUser, hashPassword, normaliseEmail, readUsers, toPublicUser, writeUsers } from '@/lib/usersDb';
+
 interface VerifyOtpBody {
   email?: string;
+  password?: string;
   otp?: string;
 }
 
 /**
- * Mock OTP verification endpoint for the sign-up flow. With no real code to
- * check against, any code the user submits is accepted; only a missing email
- * or code is rejected.
+ * Completes sign-up. Any code is accepted — nothing is actually emailed — and
+ * the account is written to the JSON database.
  */
 export async function POST(request: Request) {
   let body: VerifyOtpBody;
@@ -20,14 +21,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Malformed request body' }, { status: 400 });
   }
 
-  const { email, otp } = body;
+  const { email, password, otp } = body;
 
-  if (!email || !otp) {
-    return NextResponse.json({ message: 'Email and OTP are required' }, { status: 400 });
+  if (!email || !password || !otp) {
+    return NextResponse.json(
+      { message: 'Email, password and OTP are required' },
+      { status: 400 }
+    );
   }
 
-  // Stand in for the latency of a real auth call so loading states are visible.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  if (await findUser(email)) {
+    return NextResponse.json(
+      { message: 'An account with this email already exists' },
+      { status: 409 }
+    );
+  }
 
-  return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 });
+  const address = normaliseEmail(email);
+  const user = {
+    email: address,
+    // Fall back to the local part of the address as a display name.
+    name: address.split('@')[0],
+    passwordHash: hashPassword(password),
+    createdAt: new Date().toISOString(),
+  };
+
+  const users = await readUsers();
+  await writeUsers([...users, user]);
+
+  return NextResponse.json(
+    { message: 'Account created. Please sign in.', user: toPublicUser(user) },
+    { status: 201 }
+  );
 }
